@@ -1,0 +1,84 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="GraphClip"
+    Manufacturer="UniverseCitiz3n"
+    Version="$(var.ProductVersion)"
+    UpgradeCode="{62985065-913C-5F63-95F2-D08FCEC7D3E1}"
+    Scope="perMachine"
+    InstallerVersion="500"
+    Language="1033">
+    <SummaryInformation Description="GraphClip Microsoft Graph clipboard helper" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of GraphClip is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="GraphClipIcon" SourceFile="$(var.SourceDir)\GraphClip.ico" />
+    <Property Id="ARPPRODUCTICON" Value="GraphClipIcon" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/universecitiz3n/graph-clip" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/universecitiz3n/graph-clip" />
+    <Property Id="ARPCOMMENTS" Value="Converts Microsoft Graph DevTools requests to PowerShell." />
+
+    <Property Id="POWERSHELL7EXE">
+      <DirectorySearch Id="PowerShell7Directory" Path="C:\Program Files\PowerShell\7">
+        <FileSearch Id="PowerShell7Executable" Name="pwsh.exe" MinVersion="7.0.0" />
+      </DirectorySearch>
+    </Property>
+    <Launch Condition="VersionNT64 AND POWERSHELL7EXE" Message="GraphClip requires 64-bit Windows and Microsoft PowerShell 7 or later installed machine-wide at C:\Program Files\PowerShell\7." />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLDIR" Name="GraphClip" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="GraphClip" />
+    </StandardDirectory>
+    <StandardDirectory Id="StartupFolder" />
+
+    <Feature Id="MainFeature" Title="GraphClip" Level="1">
+      <ComponentGroupRef Id="ApplicationFiles" />
+      <ComponentRef Id="GraphClipWatcher" />
+    </Feature>
+
+    <ComponentGroup Id="ApplicationFiles" Directory="INSTALLDIR">
+      <Component Id="GraphClipModule" Guid="*">
+        <File Id="GraphClipModuleFile" Source="$(var.SourceDir)\GraphClip.psm1" />
+      </Component>
+      <Component Id="GraphClipInvoke" Guid="*">
+        <File Id="GraphClipInvokeFile" Source="$(var.SourceDir)\Invoke-GraphClip.ps1" />
+      </Component>
+      <Component Id="GraphClipWatcher" Guid="*">
+        <File Id="GraphClipWatcherFile" Source="$(var.SourceDir)\GraphClip-Watcher.ps1" KeyPath="yes" />
+        <Shortcut
+          Id="GraphClipStartMenuShortcut"
+          Directory="ApplicationProgramsFolder"
+          Name="GraphClip"
+          Description="Start the GraphClip clipboard watcher"
+          Target="[ProgramFiles64Folder]PowerShell\7\pwsh.exe"
+          Arguments="-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#GraphClipWatcherFile]&quot;"
+          WorkingDirectory="INSTALLDIR"
+          Icon="GraphClipIcon" />
+        <Shortcut
+          Id="GraphClipConvertShortcut"
+          Directory="ApplicationProgramsFolder"
+          Name="Convert clipboard now"
+          Description="Convert the current Microsoft Graph request in the clipboard"
+          Target="[ProgramFiles64Folder]PowerShell\7\pwsh.exe"
+          Arguments="-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#GraphClipInvokeFile]&quot;"
+          WorkingDirectory="INSTALLDIR"
+          Icon="GraphClipIcon" />
+        <Shortcut
+          Id="GraphClipStartupShortcut"
+          Directory="StartupFolder"
+          Name="GraphClip"
+          Description="Start the GraphClip clipboard watcher at sign-in"
+          Target="[ProgramFiles64Folder]PowerShell\7\pwsh.exe"
+          Arguments="-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#GraphClipWatcherFile]&quot;"
+          WorkingDirectory="INSTALLDIR"
+          Icon="GraphClipIcon" />
+        <RemoveFolder Id="RemoveApplicationProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
+      </Component>
+      <Component Id="GraphClipVersion" Guid="*">
+        <File Id="GraphClipVersionFile" Source="$(var.SourceDir)\VERSION" />
+        <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLDIR" On="uninstall" />
+      </Component>
+    </ComponentGroup>
+  </Package>
+</Wix>
