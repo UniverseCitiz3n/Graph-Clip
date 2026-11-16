@@ -91,7 +91,12 @@ function Invoke-Msi {
     )
     $process = Start-Process -FilePath "$env:SystemRoot\System32\msiexec.exe" -ArgumentList $Arguments -Wait -PassThru
     if ($process.ExitCode -notin $ExpectedExitCodes) {
-        throw "msiexec failed with exit code $($process.ExitCode)."
+        $logArgumentIndex = [Array]::IndexOf($Arguments, '/L*v')
+        $logPath = if ($logArgumentIndex -ge 0) { $Arguments[$logArgumentIndex + 1].Trim('"') }
+        $logTail = if ($logPath -and (Test-Path -LiteralPath $logPath)) {
+            (Get-Content -LiteralPath $logPath -Tail 60) -join [Environment]::NewLine
+        }
+        throw "msiexec failed with exit code $($process.ExitCode).`n$logTail"
     }
     $process.ExitCode
 }
