@@ -237,8 +237,8 @@ try {
 
     $downgradeExitCode = Invoke-Msi -Arguments @(
         '/i', "`"$MsiPath`"", '/qn', '/norestart', '/L*v', "`"$($logPaths[2])`""
-    ) -ExpectedExitCodes @(1638)
-    if ($downgradeExitCode -ne 1638 -or -not (Test-ProductRegistered $upgradeMetadata.ProductCode)) {
+    ) -ExpectedExitCodes @(1603)
+    if ($downgradeExitCode -ne 1603 -or -not (Test-ProductRegistered $upgradeMetadata.ProductCode)) {
         throw 'Downgrade was not rejected by Windows Installer.'
     }
     Write-Host 'Downgrade prevention check: OK'
