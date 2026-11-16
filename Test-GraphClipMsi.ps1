@@ -47,7 +47,7 @@ function Get-MsiValue {
     $view = $Database.OpenView("SELECT ``Value`` FROM ``Property`` WHERE ``Property`` = '$Property'")
     $record = $null
     try {
-        $view.Execute()
+        [void]$view.Execute()
         $record = $view.Fetch()
         if (-not $record) {
             throw "MSI property '$Property' is missing."
@@ -57,7 +57,7 @@ function Get-MsiValue {
         if ($record) {
             [void][Runtime.InteropServices.Marshal]::ReleaseComObject($record)
         }
-        $view.Close()
+        [void]$view.Close()
         [void][Runtime.InteropServices.Marshal]::ReleaseComObject($view)
     }
 }
