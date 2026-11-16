@@ -194,14 +194,14 @@ try {
     }
     $upgradeVersion = $parts -join '.'
     $upgradeDir = Join-Path $tempRoot 'upgrade'
-    $upgradeBuild = @(
-        '-OutputDir', $upgradeDir,
-        '-Version', $upgradeVersion,
-        '-AllowVersionOverride',
-        '-SkipTests'
-    )
+    $upgradeBuild = @{
+        OutputDir            = $upgradeDir
+        Version              = $upgradeVersion
+        AllowVersionOverride = $true
+        SkipTests            = $true
+    }
     if ($WixPath) {
-        $upgradeBuild += @('-WixPath', $WixPath)
+        $upgradeBuild.WixPath = $WixPath
     }
     & (Join-Path $PSScriptRoot 'Build-GraphClipMsi.ps1') @upgradeBuild
 
