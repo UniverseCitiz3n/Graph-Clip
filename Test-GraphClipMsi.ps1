@@ -94,7 +94,14 @@ function Invoke-Msi {
         $logArgumentIndex = [Array]::IndexOf($Arguments, '/L*v')
         $logPath = if ($logArgumentIndex -ge 0) { $Arguments[$logArgumentIndex + 1].Trim('"') }
         $logTail = if ($logPath -and (Test-Path -LiteralPath $logPath)) {
-            (Get-Content -LiteralPath $logPath -Tail 60) -join [Environment]::NewLine
+            $failureDetails = Select-String -LiteralPath $logPath -Pattern 'Return value 3' -Context 5, 5
+            if ($failureDetails) {
+                ($failureDetails | Select-Object -Last 3 | ForEach-Object {
+                    $_.Context.PreContext + $_.Line + $_.Context.PostContext
+                }) -join [Environment]::NewLine
+            } else {
+                (Get-Content -LiteralPath $logPath -Tail 30) -join [Environment]::NewLine
+            }
         }
         throw "msiexec failed with exit code $($process.ExitCode).`n$logTail"
     }
