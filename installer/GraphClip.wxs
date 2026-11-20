@@ -17,12 +17,7 @@
     <Property Id="ARPHELPLINK" Value="https://github.com/universecitiz3n/graph-clip" />
     <Property Id="ARPCOMMENTS" Value="Converts Microsoft Graph DevTools requests to PowerShell." />
 
-    <Property Id="POWERSHELL7EXE">
-      <DirectorySearch Id="PowerShell7Directory" Path="C:\Program Files\PowerShell\7">
-        <FileSearch Id="PowerShell7Executable" Name="pwsh.exe" MinVersion="7.0.0" />
-      </DirectorySearch>
-    </Property>
-    <Launch Condition="VersionNT64 AND POWERSHELL7EXE" Message="GraphClip requires 64-bit Windows and Microsoft PowerShell 7 or later installed machine-wide at C:\Program Files\PowerShell\7." />
+    <Launch Condition="VersionNT64" Message="GraphClip requires 64-bit Windows." />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLDIR" Name="GraphClip" />
