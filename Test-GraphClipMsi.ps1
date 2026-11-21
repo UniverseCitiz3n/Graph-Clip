@@ -120,25 +120,52 @@ function Invoke-WatcherLaunchCheck {
         return
     }
 
-    $pwsh = Join-Path $env:ProgramFiles 'PowerShell\7\pwsh.exe'
-    $watcher = Join-Path $InstallDirectory 'GraphClip-Watcher.ps1'
-    if (-not (Test-Path -LiteralPath $pwsh -PathType Leaf)) {
-        throw "PowerShell 7 prerequisite not found at $pwsh."
-    }
-    $process = Start-Process -FilePath $pwsh -ArgumentList @(
-        '-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', "`"$watcher`""
-    ) -WindowStyle Hidden -PassThru
+    $watcherScript = Join-Path $InstallDirectory 'GraphClip-Watcher.ps1'
+    $startedAfter = (Get-Date).AddSeconds(-1)
+    # Process.Start instead of Start-Process -Wait, which would also wait for the long-running watcher child.
+    $launcher = [Diagnostics.Process]::Start((Join-Path $InstallDirectory 'GraphClip.exe'))
+    $watcher = $null
     try {
+        if (-not $launcher.WaitForExit(15000)) {
+            throw 'GraphClip.exe did not exit after starting the watcher.'
+        }
+        if ($launcher.ExitCode -ne 0) {
+            throw "GraphClip.exe exited with code $($launcher.ExitCode)."
+        }
         Start-Sleep -Seconds 3
-        $process.Refresh()
-        if ($process.HasExited) {
-            throw "GraphClip watcher exited during startup with code $($process.ExitCode)."
+        $watcher = Get-CimInstance Win32_Process -Filter "Name = 'pwsh.exe'" |
+            Where-Object { $_.CreationDate -ge $startedAfter -and $_.CommandLine -like "*$watcherScript*" } |
+            Select-Object -First 1
+        if (-not $watcher) {
+            throw 'GraphClip watcher was not running 3 seconds after GraphClip.exe started it.'
         }
-        Write-Host 'Watcher startup check: OK'
+        Write-Host "Watcher startup check: OK ($($watcher.ExecutablePath))"
     } finally {
-        if (-not $process.HasExited) {
-            Stop-Process -Id $process.Id
+        $launcher.Dispose()
+        if ($watcher) {
+            Stop-Process -Id $watcher.ProcessId -ErrorAction SilentlyContinue
         }
+    }
+}
+
+function Assert-ShortcutTarget {
+    param([Parameter(Mandatory)][string]$LauncherPath)
+    $shell = New-Object -ComObject WScript.Shell
+    try {
+        $programs = Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'GraphClip'
+        $shortcuts = @(
+            (Join-Path $programs 'GraphClip.lnk'),
+            (Join-Path $programs 'Convert clipboard now.lnk'),
+            (Join-Path ([Environment]::GetFolderPath('CommonStartup')) 'GraphClip.lnk')
+        )
+        foreach ($shortcut in $shortcuts) {
+            if (-not (Test-Path -LiteralPath $shortcut -PathType Leaf) -or
+                $shell.CreateShortcut($shortcut).TargetPath -ne $LauncherPath) {
+                throw "Shortcut is missing or does not start ${LauncherPath}: $shortcut"
+            }
+        }
+    } finally {
+        [void][Runtime.InteropServices.Marshal]::ReleaseComObject($shell)
     }
 }
 
@@ -185,8 +212,14 @@ try {
         '/i', "`"$MsiPath`"", '/qn', '/norestart', '/L*v', "`"$installLog`""
     )
     if (-not (Test-Path -LiteralPath (Join-Path $expectedInstallDir 'GraphClip-Watcher.ps1')) -or
+        -not (Test-Path -LiteralPath (Join-Path $expectedInstallDir 'GraphClip.exe')) -or
         -not (Test-ProductRegistered $metadata.ProductCode)) {
         throw 'Silent install did not register or place the GraphClip runtime.'
+    }
+    Assert-ShortcutTarget -LauncherPath (Join-Path $expectedInstallDir 'GraphClip.exe')
+    $arpLocation = (Get-ItemProperty -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$($metadata.ProductCode)").InstallLocation
+    if ("$arpLocation".TrimEnd('\') -ne $expectedInstallDir) {
+        throw "Installed Apps InstallLocation is '$arpLocation' instead of $expectedInstallDir."
     }
     Write-Host 'Silent install check: OK'
     Invoke-WatcherLaunchCheck -InstallDirectory $expectedInstallDir

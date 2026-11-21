@@ -21,7 +21,8 @@ or with a hotkey, and lets you choose how the bearer token is handled.
 ## Get started
 
 1. Download the latest `GraphClip-Setup-<version>.msi` from [GitHub Releases](https://github.com/UniverseCitiz3n/Graph-Clip/releases).
-2. Make sure PowerShell 7 is installed machine-wide at `C:\Program Files\PowerShell\7\pwsh.exe`.
+2. Install PowerShell 7 or later, for example with `winget install --id Microsoft.PowerShell`. The machine-wide
+   MSI and the Microsoft Store (MSIX) versions are both supported.
 3. Install the MSI. Installation requires administrator or SYSTEM deployment context.
 4. Sign in to Windows. GraphClip starts in the notification area.
 5. Copy a supported Microsoft Graph PowerShell request from browser DevTools. GraphClip converts it and places the result on the clipboard.
@@ -35,8 +36,8 @@ With PowerToys Keyboard Manager, add a **Remap a shortcut > Start App** action:
 
 | Field | Value |
 |---|---|
-| Program | `C:\Program Files\PowerShell\7\pwsh.exe` |
-| Arguments | `-NoProfile -STA -ExecutionPolicy Bypass -File "C:\Program Files\GraphClip\Invoke-GraphClip.ps1"` |
+| Program | `C:\Program Files\GraphClip\GraphClip.exe` |
+| Arguments | `--convert` |
 | Visibility | Hidden |
 | If running | Do nothing |
 
@@ -59,14 +60,16 @@ requirements.
 ## Requirements
 
 - Windows 10 version 1809 or later, or Windows 11 (x64).
-- Microsoft PowerShell 7 or later installed machine-wide at `C:\Program Files\PowerShell\7\pwsh.exe`.
+- Microsoft PowerShell 7 or later. GraphClip uses `C:\Program Files\PowerShell\7\pwsh.exe` when present, otherwise
+  `pwsh.exe` from `PATH`, including the Microsoft Store (MSIX) app execution alias.
 - Network connectivity only when you run the generated command against Microsoft Graph.
 - PowerToys Keyboard Manager is optional and only needed for a custom hotkey.
 
 ## Install, upgrade, and remove
 
 The MSI installs GraphClip under `C:\Program Files\GraphClip` and adds Start Menu and Startup
-shortcuts. The tray watcher runs after a user signs in; clipboard access is not run in Session 0.
+shortcuts to `GraphClip.exe`, a small launcher that starts the GraphClip scripts with PowerShell 7
+without a console window. The tray watcher runs after a user signs in; clipboard access is not run in Session 0.
 The installer does not require network access or force a restart.
 
 ```powershell
@@ -81,13 +84,15 @@ msiexec.exe /x "{PRODUCT-CODE}"
 ```
 
 For managed deployment, use `msiexec.exe /i "GraphClip-Setup-<version>.msi" /qn /norestart`
-with install behavior set to **System**. Keep PowerShell 7 installed machine-wide as a separate
-prerequisite. Find the MSI ProductCode in Installed Apps or in the MSI metadata before uninstalling.
+with install behavior set to **System**. Deploy PowerShell 7 as a separate prerequisite; for device-wide
+deployments prefer the machine-wide PowerShell MSI, because the Microsoft Store version is installed per user.
+Find the MSI ProductCode in Installed Apps or in the MSI metadata before uninstalling.
 
 ## Build and test
 
 The application version is in [`VERSION`](./VERSION). To build locally, install WiX Toolset 5.0.2
-and Pester 5 or later, then run:
+and Pester 5 or later, then run the commands below. The `GraphClip.exe` launcher is compiled with the
+.NET Framework C# compiler included in Windows.
 
 ```powershell
 dotnet tool install --global wix --version 5.0.2
