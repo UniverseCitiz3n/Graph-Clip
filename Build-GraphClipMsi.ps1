@@ -125,6 +125,31 @@ try {
         $bitmap.Dispose()
     }
 
+    # The launcher is built with the .NET Framework compiler that ships with Windows, so no SDK is needed.
+    $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+    if (-not (Test-Path -LiteralPath $csc -PathType Leaf)) {
+        throw "The .NET Framework C# compiler was not found: $csc"
+    }
+    $assemblyInfo = Join-Path $staging 'AssemblyInfo.cs'
+    Set-Content -LiteralPath $assemblyInfo -Encoding utf8 -Value @(
+        'using System.Reflection;'
+        '[assembly: AssemblyTitle("GraphClip")]'
+        '[assembly: AssemblyDescription("Starts GraphClip with PowerShell 7.")]'
+        '[assembly: AssemblyCompany("UniverseCitiz3n")]'
+        '[assembly: AssemblyProduct("GraphClip")]'
+        "[assembly: AssemblyVersion(`"$version.0`")]"
+        "[assembly: AssemblyFileVersion(`"$version.0`")]"
+        "[assembly: AssemblyInformationalVersion(`"$version`")]"
+    )
+    $launcherPath = Join-Path $stagingRoot 'GraphClip.exe'
+    $cscOutput = & $csc /nologo /target:winexe /platform:x64 /optimize+ /warnaserror+ "/out:$launcherPath" `
+        "/win32icon:$(Join-Path $stagingRoot 'GraphClip.ico')" /reference:System.Windows.Forms.dll `
+        (Join-Path $PSScriptRoot 'installer\GraphClipLauncher.cs') $assemblyInfo 2>&1
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $launcherPath -PathType Leaf)) {
+        throw "Launcher build failed with exit code $LASTEXITCODE.`n$($cscOutput -join [Environment]::NewLine)"
+    }
+    Write-Host 'Launcher build: OK'
+
     $outputPath = [IO.Path]::GetFullPath($OutputDir)
     $null = New-Item -ItemType Directory -Path $outputPath -Force
     $msiPath = Join-Path $outputPath "GraphClip-Setup-$version.msi"

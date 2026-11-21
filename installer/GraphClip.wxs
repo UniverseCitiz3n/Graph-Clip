@@ -16,6 +16,7 @@
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/universecitiz3n/graph-clip" />
     <Property Id="ARPHELPLINK" Value="https://github.com/universecitiz3n/graph-clip" />
     <Property Id="ARPCOMMENTS" Value="Converts Microsoft Graph DevTools requests to PowerShell." />
+    <SetProperty Id="ARPINSTALLLOCATION" Value="[INSTALLDIR]" After="CostFinalize" />
 
     <Launch Condition="VersionNT64" Message="GraphClip requires 64-bit Windows." />
 
@@ -33,6 +34,9 @@
     </Feature>
 
     <ComponentGroup Id="ApplicationFiles" Directory="INSTALLDIR">
+      <Component Id="GraphClipLauncher" Guid="*">
+        <File Id="GraphClipLauncherFile" Source="$(var.SourceDir)\GraphClip.exe" KeyPath="yes" />
+      </Component>
       <Component Id="GraphClipModule" Guid="*">
         <File Id="GraphClipModuleFile" Source="$(var.SourceDir)\GraphClip.psm1" />
       </Component>
@@ -46,8 +50,7 @@
           Directory="ApplicationProgramsFolder"
           Name="GraphClip"
           Description="Start the GraphClip clipboard watcher"
-          Target="[ProgramFiles64Folder]PowerShell\7\pwsh.exe"
-          Arguments="-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#GraphClipWatcherFile]&quot;"
+          Target="[#GraphClipLauncherFile]"
           WorkingDirectory="INSTALLDIR"
           Icon="GraphClipIcon" />
         <Shortcut
@@ -55,8 +58,8 @@
           Directory="ApplicationProgramsFolder"
           Name="Convert clipboard now"
           Description="Convert the current Microsoft Graph request in the clipboard"
-          Target="[ProgramFiles64Folder]PowerShell\7\pwsh.exe"
-          Arguments="-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#GraphClipInvokeFile]&quot;"
+          Target="[#GraphClipLauncherFile]"
+          Arguments="--convert"
           WorkingDirectory="INSTALLDIR"
           Icon="GraphClipIcon" />
         <Shortcut
@@ -64,8 +67,7 @@
           Directory="StartupFolder"
           Name="GraphClip"
           Description="Start the GraphClip clipboard watcher at sign-in"
-          Target="[ProgramFiles64Folder]PowerShell\7\pwsh.exe"
-          Arguments="-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#GraphClipWatcherFile]&quot;"
+          Target="[#GraphClipLauncherFile]"
           WorkingDirectory="INSTALLDIR"
           Icon="GraphClipIcon" />
         <RemoveFolder Id="RemoveApplicationProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
